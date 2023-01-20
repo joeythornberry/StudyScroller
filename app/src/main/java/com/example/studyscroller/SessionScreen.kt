@@ -4,6 +4,7 @@ import android.media.ThumbnailUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -20,14 +21,17 @@ import androidx.compose.ui.unit.dp
 import com.example.studyscroller.model.Whiteboard
 
 @Composable
-fun SessionScreen(whiteboards: MutableList<Whiteboard>, contentResolver: ContentResolver, viewModel: StudyScrollerViewModel, toCreatorScreen: () -> Unit, getString: (Int) -> String) {
+fun SessionScreen(whiteboards: MutableList<Whiteboard>, contentResolver: ContentResolver, viewModel: StudyScrollerViewModel, unloadBitmaps: () -> Unit, toCreatorScreen: () -> Unit, getString: (Int) -> String) {
 
     Column(modifier = Modifier) {
 
         Row(modifier = Modifier) {
-            EndSessionButton(toCreatorScreen = { toCreatorScreen() }, viewModel = viewModel)
-            EditSessionButton(toCreatorScreen = { toCreatorScreen() })
-            SaveSessionButton(toCreatorScreen = { toCreatorScreen() }, viewModel = viewModel, path = getString(R.string.saved_sessions_path))
+            EndSessionButton(toCreatorScreen = { unloadBitmaps()
+                toCreatorScreen() }, viewModel = viewModel)
+            EditSessionButton(toCreatorScreen = { unloadBitmaps()
+                toCreatorScreen() })
+            SaveSessionButton(toCreatorScreen = { unloadBitmaps()
+                toCreatorScreen() }, viewModel = viewModel, path = getString(R.string.saved_sessions_path))
         }
 
         WhiteboardList(whiteboardList = whiteboards)
@@ -94,9 +98,11 @@ fun WhiteboardCard(whiteboard: Whiteboard, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(6.dp),
                 style = MaterialTheme.typography.h6
             )
-            TransformableImage (
-                bitmap = whiteboard.bitmap!!.asImageBitmap(),
+            if (whiteboard.bitmap != null) {
+                TransformableImage(
+                    bitmap = whiteboard.bitmap!!.asImageBitmap(),
                 )
+            }
         }
     }
 }
@@ -105,13 +111,12 @@ fun WhiteboardCard(whiteboard: Whiteboard, modifier: Modifier = Modifier) {
 fun WhiteboardList(whiteboardList: MutableList<Whiteboard>?, modifier: Modifier = Modifier) {
     //scrolling list of whiteboard cards
 
-    Column(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-    ) {
+    LazyColumn() {
         if (whiteboardList != null) {
             for(whiteboard in whiteboardList) {
-                WhiteboardCard(whiteboard = whiteboard)
+                item {
+                    WhiteboardCard(whiteboard = whiteboard)
+                }
             }
         }
     }

@@ -126,6 +126,14 @@ class StudyScrollerViewModel : ViewModel() {
         currentState.copy(reload = !currentState.reload)
         }
     }
+
+    fun reloadWhiteboards() {
+        //band aid for until i figure out how to update state properly
+        //just tells creator screen to turn itself off and on again
+        _uiState.update { currentState ->
+            currentState.copy(reloadWhiteboards = !currentState.reloadWhiteboards)
+        }
+    }
 }
 
 data class StudyScrollerUiState(
@@ -137,6 +145,7 @@ data class StudyScrollerUiState(
     val openNameSavedSessionDialog: MutableList<Whiteboard>? = null,
     val selectedWhiteboards: MutableList<Whiteboard> = mutableListOf(),
     val previewWhiteboard: Whiteboard? = null,
-    val reload: Boolean = false
+    val reload: Boolean = false,
+    val reloadWhiteboards: Boolean = false
 )
 

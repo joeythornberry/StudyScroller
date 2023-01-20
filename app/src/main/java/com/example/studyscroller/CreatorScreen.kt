@@ -17,9 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.studyscroller.data.saveFolders
 import com.example.studyscroller.data.foldersMap
 import com.example.studyscroller.data.whiteboardsMap
 import com.example.studyscroller.model.Whiteboard
@@ -66,14 +66,27 @@ fun CreatorScreen(
             NameSavedSessionDialog(viewModel = viewModel, whiteboards = viewModel.uiState.collectAsState().value.openNameSavedSessionDialog!!, saveFolders = { hoistedSaveFolders() }, savePhotoToInternalStorage = {s,b -> savePhotoToInternalStorage(s,b)})
         }
 
-        CreateFolderButton(viewModel = viewModel)
-        TakePhotoButton(onTakePhoto = { onTakePhoto() }, viewModel = viewModel)
-        PickPhotoButton(onPickPhoto = { onPickPhoto() }, viewModel = viewModel)
-        LastDirectoryButton(viewModel = viewModel)
-        ToSessionButton(onSessionButtonClicked = { onSessionButtonClicked() })
+        Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+            CreateFolderButton(viewModel = viewModel, modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f))
+            TakePhotoButton(onTakePhoto = { onTakePhoto() }, viewModel = viewModel, modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f))
+            PickPhotoButton(onPickPhoto = { onPickPhoto() }, viewModel = viewModel, modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f))
+        }
+        ToSessionButton(modifier = Modifier
+            .width(50.dp)
+            .height(50.dp)
+            ,onSessionButtonClicked = { onSessionButtonClicked() })
+        Row (modifier = Modifier) {
+            LastDirectoryButton(viewModel = viewModel)
+            SelectAllButton(viewModel = viewModel)
+        }
         SavedSessionsButton(onSavedSessionsButtonClicked = { viewModel.changeDirectory("Main/Saved Sessions") })
         FavoritesButton(onFavoritesButtonClicked = { viewModel.changeDirectory("Main/Favorites") })
-        SelectAllButton(viewModel = viewModel)
         Text(viewModel.uiState.collectAsState().value.currentDirectory)
         Column(
             modifier = Modifier
@@ -101,7 +114,7 @@ fun CreatorScreen(
 
 /**CREATOR SCREEN FILE EXPLORER**/
 //scrolling list of all folders and whiteboards in current directory
-//each has an edit button that can change its nane or delete it
+//each has an edit button that can change its name or delete it
 //when folders are clicked they change the current directory
 //when whiteboards are clicked they are added to the current session
 
@@ -134,7 +147,11 @@ fun CreatorWhiteboardAndFolderList(
     } else {
         //else give a list of all whiteboards in current directory
         if (whiteboardsMap[directory] != null) {
-            listOfWhiteboards = whiteboardsMap[directory]!!
+            if (!viewModel.uiState.collectAsState().value.reloadWhiteboards) {
+                listOfWhiteboards = whiteboardsMap[directory]!!
+            } else {
+                viewModel.reloadWhiteboards()
+            }
         }
     }
 
@@ -174,6 +191,7 @@ fun CreatorFolderList(
                     viewModel.setPreviewWhiteboard(null)
                     viewModel.changeDirectory(Folder.givePath())
                     onReloadCreator()
+                    viewModel.reloadWhiteboards()
                 },
                 viewModel = viewModel,
             )
@@ -698,26 +716,30 @@ fun NameSavedSessionDialog(viewModel: StudyScrollerViewModel, whiteboards: Mutab
 /**CREATOR SCREEN BUTTONS**/
 
 @Composable
-fun TakePhotoButton(onTakePhoto: () -> Unit, viewModel: StudyScrollerViewModel) {
-    Button(onClick = { onTakePhoto()
-        viewModel.openOrCloseNewWhiteboardDialog() }) {
-        Text("Take Photo")
+fun TakePhotoButton(onTakePhoto: () -> Unit, viewModel: StudyScrollerViewModel,modifier: Modifier = Modifier) {
+    Row(modifier = Modifier, horizontalArrangement = Arrangement.Center) {
+        Button(onClick = {
+            onTakePhoto()
+            viewModel.openOrCloseNewWhiteboardDialog()
+        }) {
+            Text("Take Photo")
+        }
     }
 }
 
 @Composable
-fun PickPhotoButton(onPickPhoto: () -> Unit, viewModel: StudyScrollerViewModel) {
-    Button(onClick = { onPickPhoto()
+fun PickPhotoButton(onPickPhoto: () -> Unit, viewModel: StudyScrollerViewModel,modifier: Modifier = Modifier) {
+    Button(modifier = Modifier, onClick = { onPickPhoto()
         viewModel.openOrCloseNewWhiteboardDialog() }) {
         Text("Pick Photo")
     }
 }
 
 @Composable
-fun CreateFolderButton(viewModel: StudyScrollerViewModel) {
+fun CreateFolderButton(viewModel: StudyScrollerViewModel,modifier: Modifier = Modifier) {
     //tells viewModel to open new folder dialog
 
-    Button(onClick = {
+    Button(modifier = Modifier,onClick = {
         viewModel.openOrCloseNewFolderDialog()
     }) {
         Text("create folder")
@@ -726,28 +748,31 @@ fun CreateFolderButton(viewModel: StudyScrollerViewModel) {
 
 @Composable
 fun ToSessionButton(
-    onSessionButtonClicked: () -> Unit
+    onSessionButtonClicked: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     //tells parent CreatorScreen to navigate to session screen
-
-    Button(onClick = { onSessionButtonClicked() }) {
-        Text("to session")
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Button(onClick = { onSessionButtonClicked() }) {
+            Text("to session")
+        }
     }
 }
 
 @Composable
-fun LastDirectoryButton(viewModel: StudyScrollerViewModel) {
+fun LastDirectoryButton(viewModel: StudyScrollerViewModel,modifier: Modifier = Modifier) {
     //tells viewModel to change current directory to the parent directory of the current directory
 
     Button(onClick = {
         viewModel.lastDirectory()
+        viewModel.reloadWhiteboards()
     }) {
         Text("<-")
     }
 }
 
 @Composable
-fun FavoritesButton(onFavoritesButtonClicked: () -> Unit) {
+fun FavoritesButton(onFavoritesButtonClicked: () -> Unit, modifier: Modifier = Modifier) {
     //tells parent CreatorScreen to change current directory to the favorite whiteboards directory
 
     Button(onClick = { onFavoritesButtonClicked() }) {
@@ -756,7 +781,7 @@ fun FavoritesButton(onFavoritesButtonClicked: () -> Unit) {
 }
 
 @Composable
-fun SavedSessionsButton(onSavedSessionsButtonClicked: () -> Unit) {
+fun SavedSessionsButton(onSavedSessionsButtonClicked: () -> Unit, modifier: Modifier = Modifier) {
     //tells parent CreatorScreen to change current directory to the saved sessions directory
 
     Button(onClick = { onSavedSessionsButtonClicked() }) {
@@ -765,7 +790,7 @@ fun SavedSessionsButton(onSavedSessionsButtonClicked: () -> Unit) {
 }
 
 @Composable
-fun SelectAllButton(viewModel: StudyScrollerViewModel) {
+fun SelectAllButton(viewModel: StudyScrollerViewModel, modifier: Modifier = Modifier) {
     //selects or deselects each whiteboard in current directory
     //RELOADS THE SCREEN TO GET CHECK BOXES TO UPDATE (need to learn more about state updates)
     //displays "Select All" or "Deselect All"
@@ -814,8 +839,11 @@ fun WhiteboardPreview(previewWhiteboard: Whiteboard?, contentResolver: ContentRe
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(previewWhiteboard.name)
-            val thumbnail = ThumbnailUtils.extractThumbnail(previewWhiteboard.bitmap!!,500,500)
-            Image(thumbnail.asImageBitmap(), "preview")
+            if (previewWhiteboard.bitmap != null) {
+                val thumbnail =
+                    ThumbnailUtils.extractThumbnail(previewWhiteboard.bitmap!!, 500, 500)
+                Image(thumbnail.asImageBitmap(), "preview")
+            }
         }
     } else {
         Text("helpful tip")
@@ -865,3 +893,20 @@ fun validateFileName (name: String, context: Context): Boolean {
         return true
     }
 }
+
+/**
+@Preview
+@Composable
+fun CreatorScreenPreview() {
+     CreatorScreen(
+         viewModel = StudyScrollerViewModel(),
+         onTakePhoto = { /*TODO*/ },
+         onPickPhoto = { /*TODO*/ },
+         onSessionButtonClicked = { /*TODO*/ },
+         onReloadCreator = { /*TODO*/ },
+         hoistedSaveFolders = { /*TODO*/ },
+         savePhotoToInternalStorage = {s,b -> },
+         deletePhotoFromInternalStorage = {s ->}
+     )
+}
+        **/

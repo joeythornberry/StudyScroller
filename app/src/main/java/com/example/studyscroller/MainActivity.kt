@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity() {
             val files = filesDir.listFiles()
             for (file in files?.filter { it.canRead() && it.isFile && it.name.endsWith(".jpg")}!!) {
                 val bytes = file.readBytes()
-                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                //val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 var originalPath = file.name.substringBefore("!")
                 var favorited = file.name.substringBefore('?').substringAfter("!")
                 val path = switchSeparatorsInString(file.name.substringBefore(',').substringAfter("?"))
@@ -132,9 +132,21 @@ class MainActivity : AppCompatActivity() {
                 if (map[path] == null) {
                     map[path] = mutableListOf()
                 }
-                map[path]!!.add(Whiteboard(name = name, path = path,bitmap =  bmp, filename = file.name, unalteredFilename = file.name, originalPath = if (originalPath == "") path else originalPath,favorited = if (favorited == "favorited") true else false))
+                map[path]!!.add(Whiteboard(name = name, path = path, bitmap = null, filename = file.name, unalteredFilename = file.name, originalPath = if (originalPath == "") path else originalPath,favorited = if (favorited == "favorited") true else false))
             }
         return map
+    }
+
+    private fun loadBitmapFromInternalStorage(whiteboard: Whiteboard): Bitmap? {
+        //returns bitmap of given whiteboard
+
+        val files = filesDir.listFiles()
+        for (file in files?.filter { it.canRead() && it.isFile && it.name == whiteboard.unalteredFilename }!!) {
+            val bytes = file.readBytes()
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            return bitmap
+        }
+        return null
     }
 
 
@@ -211,7 +223,17 @@ class MainActivity : AppCompatActivity() {
                     contentResolver = contentResolver,
                     onTakePhoto = { onTakePhoto() },
                     onPickPhoto = { onPickPhoto() },
-                    onSessionButtonClicked = { navController.navigate("session") },
+                    onSessionButtonClicked = {
+                        for (whiteboard in studyScrollerViewModel.uiState.value.selectedWhiteboards) {
+                            val bitmap = loadBitmapFromInternalStorage(whiteboard)
+                            if (bitmap != null) {
+                                whiteboard.bitmap = bitmap
+                                Log.d("loaded bitmap","load_bitmap")
+                            } else {
+                                Log.d("did not load bitmap","load_bitmap")
+                            }
+                        }
+                        navController.navigate("session") },
                     hoistedSaveFolders = {
                         val fileOutputStream: FileOutputStream =
                             openFileOutput(foldersFile, ComponentActivity.MODE_PRIVATE)
@@ -227,7 +249,16 @@ class MainActivity : AppCompatActivity() {
                 SessionScreen(
                     whiteboards = studyScrollerViewModel.uiState.collectAsState().value.selectedWhiteboards,
                     contentResolver = contentResolver,
-                    toCreatorScreen = { navController.navigate("creator") },
+                    unloadBitmaps = {
+                        //DOESN"T WORK
+                        for (whiteboard in studyScrollerViewModel.uiState.value.selectedWhiteboards) {
+                            whiteboard.bitmap = null
+                            Log.d("unloaded bitmap","load_bitmap")
+                        }
+                    },
+                    toCreatorScreen = {
+
+                        navController.navigate("creator") },
                     viewModel = studyScrollerViewModel,
                     getString = { getString(it) }
                 )
