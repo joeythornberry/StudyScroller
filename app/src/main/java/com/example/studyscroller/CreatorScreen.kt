@@ -5,11 +5,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.media.ThumbnailUtils
 import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.studyscroller.data.foldersMap
@@ -37,11 +33,13 @@ fun CreatorScreen(
     contentResolver: ContentResolver,
     onTakePhoto: () -> Unit,
     onPickPhoto: () -> Unit,
-    onSessionButtonClicked: () -> Unit,
+    toSessionScreen: () -> Unit,
+    toPreviewScreen: () -> Unit,
     onReloadCreator: () -> Unit,
     hoistedSaveFolders: () -> Unit,
-    savePhotoToInternalStorage: (String,Bitmap) -> Unit,
-    deletePhotoFromInternalStorage: (String) -> Unit
+    savePhotoToInternalStorage: (String, Bitmap) -> Unit,
+    deletePhotoFromInternalStorage: (String) -> Unit,
+    loadBitmapFromInternalStorage: (Whiteboard) -> Bitmap?
 ) {
     Column(
         modifier = Modifier
@@ -80,7 +78,7 @@ fun CreatorScreen(
         ToSessionButton(modifier = Modifier
             .width(50.dp)
             .height(50.dp)
-            ,onSessionButtonClicked = { onSessionButtonClicked() })
+            ,onSessionButtonClicked = { toSessionScreen() })
         Row (modifier = Modifier) {
             LastDirectoryButton(viewModel = viewModel)
             SelectAllButton(viewModel = viewModel)
@@ -106,7 +104,12 @@ fun CreatorScreen(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                WhiteboardPreview(previewWhiteboard = viewModel.uiState.collectAsState().value.previewWhiteboard, contentResolver)
+                WhiteboardPreview(
+                    previewWhiteboard = viewModel.uiState.collectAsState().value.previewWhiteboard,
+                    contentResolver = contentResolver,
+                    loadBitmapFromInternalStorage = { loadBitmapFromInternalStorage(it) },
+                    toPreviewScreen =  { toPreviewScreen() }
+                    )
             }
         }
     }
@@ -832,14 +835,16 @@ fun SelectAllButton(viewModel: StudyScrollerViewModel, modifier: Modifier = Modi
 //if not, display a random hint (like on the Minecraft loading screen) TO DO
 
 @Composable
-fun WhiteboardPreview(previewWhiteboard: Whiteboard?, contentResolver: ContentResolver) {
+fun WhiteboardPreview(previewWhiteboard: Whiteboard?, contentResolver: ContentResolver, loadBitmapFromInternalStorage: (Whiteboard) -> Bitmap?, toPreviewScreen: () -> Unit) {
     if(previewWhiteboard != null) {
         Column(
-            modifier = Modifier,
+            modifier = Modifier.clickable { toPreviewScreen() },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(previewWhiteboard.name)
-            if (previewWhiteboard.bitmap != null) {
+            val bitmap = loadBitmapFromInternalStorage(previewWhiteboard)
+            if (bitmap != null) {
+                previewWhiteboard.bitmap = bitmap
                 val thumbnail =
                     ThumbnailUtils.extractThumbnail(previewWhiteboard.bitmap!!, 500, 500)
                 Image(thumbnail.asImageBitmap(), "preview")

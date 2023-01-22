@@ -2,14 +2,11 @@ package com.example.studyscroller
 
 import android.Manifest
 import android.content.ContentValues
-import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -22,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import com.example.studyscroller.data.*
 import com.example.studyscroller.model.Whiteboard
 import java.io.File
@@ -223,24 +219,25 @@ class MainActivity : AppCompatActivity() {
                     contentResolver = contentResolver,
                     onTakePhoto = { onTakePhoto() },
                     onPickPhoto = { onPickPhoto() },
-                    onSessionButtonClicked = {
+                    toSessionScreen = {
                         for (whiteboard in studyScrollerViewModel.uiState.value.selectedWhiteboards) {
-                            val bitmap = loadBitmapFromInternalStorage(whiteboard)
-                            if (bitmap != null) {
-                                whiteboard.bitmap = bitmap
-                                Log.d("loaded bitmap","load_bitmap")
-                            } else {
-                                Log.d("did not load bitmap","load_bitmap")
+                            if (whiteboard.bitmap == null) {
+                                val bitmap = loadBitmapFromInternalStorage(whiteboard)
+                                if (bitmap != null) {
+                                    whiteboard.bitmap = bitmap
+                                }
                             }
                         }
                         navController.navigate("session") },
+                    toPreviewScreen = { navController.navigate("preview") },
                     hoistedSaveFolders = {
                         val fileOutputStream: FileOutputStream =
                             openFileOutput(foldersFile, ComponentActivity.MODE_PRIVATE)
                         saveFolders(fileOutputStream)
                     },
-                    savePhotoToInternalStorage = { s,b -> savePhotoToInternalStorage(s,b) },
-                    deletePhotoFromInternalStorage = {s -> deletePhotoFromInternalStorage(s)},
+                    savePhotoToInternalStorage = { s, b -> savePhotoToInternalStorage(s,b) },
+                    deletePhotoFromInternalStorage = { s -> deletePhotoFromInternalStorage(s)},
+                    loadBitmapFromInternalStorage = { loadBitmapFromInternalStorage(it) },
                     onReloadCreator = { }
                 )
             }
@@ -257,11 +254,15 @@ class MainActivity : AppCompatActivity() {
                         }
                     },
                     toCreatorScreen = {
-
                         navController.navigate("creator") },
                     viewModel = studyScrollerViewModel,
                     getString = { getString(it) }
                 )
+            }
+
+            composable(route = "preview") {
+                PreviewScreen(previewWhiteboard = studyScrollerViewModel.uiState.value.previewWhiteboard!!,
+                    toCreatorScreen = { navController.navigate("creator") })
             }
         }
     }
